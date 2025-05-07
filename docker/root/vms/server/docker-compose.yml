@@ -1,0 +1,110 @@
+version: '3'
+
+networks:
+  iot_net:
+    driver: bridge
+
+services:
+  mosquitto:
+    image: eclipse-mosquitto
+    volumes:
+      - ../gateway/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
+    ports:
+      - "1883:1883"
+    networks:
+      - iot_net
+  influxdb:
+    image: influxdb:1.8
+    container_name: influxdb
+    restart: always
+    ports:
+      - "8086:8086"
+    volumes:
+      - ./influxdb:/var/lib/influxdb
+    environment:
+      - INFLUXDB_DB=sensors
+      - INFLUXDB_HTTP_AUTH_ENABLED=false
+    networks:
+      - iot_net
+
+
+  grafana:
+    image: grafana/grafana
+    volumes:
+      - ./grafana:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - influxdb
+    networks:
+      - iot_net
+
+  telegraf:
+    image: telegraf
+    volumes:
+      - ./telegraf/telegraf.conf:/etc/telegraf/telegraf.conf
+    depends_on:
+      - mosquitto
+      - influxdb
+    networks:
+      - iot_net
+
+  sensor_temperature:
+    build: ../client/simulator
+    environment:
+      - SENSOR_TYPE=temperature
+      - SENSOR_NAME=temperature1
+      - INTERVAL=5
+      - BROKER_HOST=mosquitto
+    networks:
+      - iot_net
+
+  sensor_pressure:
+    build: ../client/simulator
+    environment:
+      - SENSOR_TYPE=pressure
+      - SENSOR_NAME=pressure1
+      - INTERVAL=5
+      - BROKER_HOST=mosquitto
+    networks:
+      - iot_net
+
+  sensor_current:
+    build: ../client/simulator
+    environment:
+      - SENSOR_TYPE=current
+      - SENSOR_NAME=current1
+      - INTERVAL=5
+      - BROKER_HOST=mosquitto
+    networks:
+      - iot_net
+
+  sensor_vibration:
+    build: ../client/simulator
+    environment:
+      - SENSOR_TYPE=vibration
+      - SENSOR_NAME=vibration1
+      - INTERVAL=5
+      - BROKER_HOST=mosquitto
+    networks:
+      - iot_net
+
+  sensor_temperature2:
+    build: ../client/simulator
+    environment:
+      - SENSOR_TYPE=temperature
+      - SENSOR_NAME=temperature2
+      - INTERVAL=7
+      - BROKER_HOST=mosquitto
+    networks:
+      - iot_net
+
+  sensor_pressure2:
+    build: ../client/simulator
+    environment:
+      - SENSOR_TYPE=pressure
+      - SENSOR_NAME=pressure2
+      - INTERVAL=7
+      - BROKER_HOST=mosquitto
+    networks:
+      - iot_net
